@@ -8,29 +8,19 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func ArticlesCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	fmt.Println("Route has been accessed")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Category: %v\n", vars["category"])
-}
-
-type User struct {
-	Firstname string `json:"firstname"`
-	Lastname  string `json:"lastname"`
-	Age       int    `json:"age"`
+type articleToTrack struct {
+	SearchTerm string `json:"searchTerm"`
+	Price      int    `json:"price"`
 }
 
 func postyMcPost(w http.ResponseWriter, r *http.Request) {
-	var user User
-	json.NewDecoder(r.Body).Decode(&user)
-	// decoder := json.NewDecoder(r.Body)
-	// fmt.Println(decoder)
-	fmt.Println(user)
+	var article articleToTrack
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&article)
 
-	profile := User{"Alex", "asdadsf", 43564563}
+	fmt.Println(article)
 
-	js, err := json.Marshal(profile)
+	js, err := json.Marshal(article)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -43,7 +33,6 @@ func postyMcPost(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	router := mux.NewRouter()
-	router.HandleFunc("/articles", ArticlesCategoryHandler)
 	router.HandleFunc("/api/track-product", postyMcPost).Methods("POST")
 	http.ListenAndServe(":8079", router)
 }

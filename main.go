@@ -75,6 +75,7 @@ func removeTracking(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err.Error())
 		return
 	}
+	w.WriteHeader(204)
 }
 
 var dynamoClient *dynamodb.DynamoDB

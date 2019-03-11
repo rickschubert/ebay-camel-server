@@ -41,6 +41,7 @@ func trackItem(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("An error occured when trying to post the item to DynamoDB:")
 		fmt.Println(err.Error())
+		return
 	}
 
 	response := trackItemResponse{
@@ -56,6 +57,24 @@ func trackItem(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 	w.Write(js)
+}
+
+func removeTracking(w http.ResponseWriter, r *http.Request) {
+	uuidToRemove := mux.Vars(r)["trackingUUID"]
+	input := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"UUID": {
+				S: aws.String(uuidToRemove),
+			},
+		},
+		TableName: aws.String("trackings"),
+	}
+	_, err := dynamoClient.DeleteItem(input)
+	if err != nil {
+		fmt.Println("An error occured when trying to delete the item from DynamoDB:")
+		fmt.Println(err.Error())
+		return
+	}
 }
 
 var dynamoClient *dynamodb.DynamoDB
@@ -74,5 +93,6 @@ func main() {
 	connectToDynamoDB()
 	router := mux.NewRouter()
 	router.HandleFunc("/api/track-item", trackItem).Methods("POST")
+	router.HandleFunc("/api/untrack/{trackingUUID}", removeTracking).Methods("DELETE")
 	http.ListenAndServe(":8079", router)
 }

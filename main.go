@@ -18,6 +18,8 @@ const awsDatabaseRegion = "eu-west-2"
 type itemToTrack struct {
 	SearchTerm string `json:"searchTerm"`
 	Price      int    `json:"price"`
+	UserID     string `json:"userId"`
+	MaxTime    int    `json:"maxTime"`
 	UUID       string
 }
 

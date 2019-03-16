@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -20,7 +21,10 @@ func trackItem(w http.ResponseWriter, r *http.Request) {
 	decoder.Decode(&article)
 	article.UUID = uuid.Must(uuid.NewV4()).String()
 
-	db.CreateTracking(article)
+	_, errWriting := db.CreateTracking(article)
+	if errWriting != nil {
+		panic(fmt.Sprintf("An error occured when trying to post the item to DynamoDB: %v", errWriting.Error()))
+	}
 
 	response := trackItemResponse{
 		Success: true,
@@ -39,7 +43,10 @@ func trackItem(w http.ResponseWriter, r *http.Request) {
 
 func removeTracking(w http.ResponseWriter, r *http.Request) {
 	trackingId := mux.Vars(r)["trackingUUID"]
-	db.DeleteTracking(trackingId)
+	_, err := db.DeleteTracking(trackingId)
+	if err != nil {
+		panic(fmt.Sprintf("An error occured when trying to delete the item from DynamoDB: %v", err.Error()))
+	}
 	w.WriteHeader(204)
 }
 

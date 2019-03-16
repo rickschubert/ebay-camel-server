@@ -2,26 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/gorilla/mux"
+	"github.com/rickschubert/ebay-camel-camel-camel/database"
 	"github.com/satori/go.uuid"
 )
-
-const awsDatabaseRegion = "eu-west-2"
-
-type itemToTrack struct {
-	SearchTerm string `json:"searchTerm"`
-	Price      int    `json:"price"`
-	UserID     string `json:"userId"`
-	MaxTime    int    `json:"maxTime"`
-	UUID       string
-}
 
 type trackItemResponse struct {
 	Success bool   `json:"success"`
@@ -29,22 +15,12 @@ type trackItemResponse struct {
 }
 
 func trackItem(w http.ResponseWriter, r *http.Request) {
-	var article itemToTrack
+	var article database.ItemToTrack
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&article)
 	article.UUID = uuid.Must(uuid.NewV4()).String()
 
-	av, err := dynamodbattribute.MarshalMap(article)
-	input := &dynamodb.PutItemInput{
-		Item:      av,
-		TableName: aws.String("trackings"),
-	}
-	_, err = dynamoClient.PutItem(input)
-	if err != nil {
-		fmt.Println("An error occured when trying to post the item to DynamoDB:")
-		fmt.Println(err.Error())
-		return
-	}
+	db.CreateTracking(article)
 
 	response := trackItemResponse{
 		Success: true,
@@ -62,38 +38,15 @@ func trackItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeTracking(w http.ResponseWriter, r *http.Request) {
-	uuidToRemove := mux.Vars(r)["trackingUUID"]
-	input := &dynamodb.DeleteItemInput{
-		Key: map[string]*dynamodb.AttributeValue{
-			"UUID": {
-				S: aws.String(uuidToRemove),
-			},
-		},
-		TableName: aws.String("trackings"),
-	}
-	_, err := dynamoClient.DeleteItem(input)
-	if err != nil {
-		fmt.Println("An error occured when trying to delete the item from DynamoDB:")
-		fmt.Println(err.Error())
-		return
-	}
+	trackingId := mux.Vars(r)["trackingUUID"]
+	db.DeleteTracking(trackingId)
 	w.WriteHeader(204)
 }
 
-var dynamoClient *dynamodb.DynamoDB
-
-func connectToDynamoDB() {
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(awsDatabaseRegion)},
-	)
-	if err != nil {
-		panic("Could not initiate new session with Dynamo DB.")
-	}
-	dynamoClient = dynamodb.New(sess)
-}
+var db database.Database
 
 func main() {
-	connectToDynamoDB()
+	db = database.New()
 	router := mux.NewRouter()
 	router.HandleFunc("/api/track-item", trackItem).Methods("POST")
 	router.HandleFunc("/api/untrack/{trackingUUID}", removeTracking).Methods("DELETE")

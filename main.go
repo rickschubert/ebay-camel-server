@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/rickschubert/ebay-camel-camel-camel/database"
+	"github.com/rickschubert/ebay-camel-lambda/database"
 	"github.com/satori/go.uuid"
 )
 
